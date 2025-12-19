@@ -66,28 +66,23 @@ fn main() {
         .with_model_from_file(&model_path)
         .expect("Failed to load model");
 
-    // =========================
     // 前処理
-    // =========================
     let input_tensor = preprocess_image(&args.image_path);
 
-    // =========================
     // 推論
-    // =========================
     let outputs = session.run(vec![input_tensor]).expect("Inference failed");
 
     let output = &outputs[0];
     let logits_view = output.view();
 
-    // logits_view は ndarray
+    // logits_view は ndarrayなのでVecに変換
     let logits: Vec<f32> = logits_view.iter().cloned().collect();
 
+    // softmaxで確率へ
     let probs = softmax(&logits);
     let abnormal_prob = probs[1];
 
-    // =========================
     // 結果表示
-    // =========================
     println!("Abnormal probability: {:.2}", abnormal_prob);
 
     if abnormal_prob > 0.5 {

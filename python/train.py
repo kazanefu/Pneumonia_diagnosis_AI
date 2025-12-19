@@ -8,9 +8,8 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import roc_auc_score
 from tqdm import tqdm
 
-# =========================
+
 # 設定
-# =========================
 DATASET_DIR = "dataset"
 MODEL_DIR = "model"
 BATCH_SIZE = 16
@@ -20,18 +19,16 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 os.makedirs(MODEL_DIR, exist_ok=True)
 
-# =========================
+
 # 前処理（Rust側と一致させる）
-# =========================
 transform = transforms.Compose([
     transforms.Grayscale(num_output_channels=1),
     transforms.Resize((224, 224)),
     transforms.ToTensor(),  # 0.0 ~ 1.0
 ])
 
-# =========================
+
 # Dataset / DataLoader
-# =========================
 train_ds = datasets.ImageFolder(
     os.path.join(DATASET_DIR, "train"),
     transform=transform
@@ -48,9 +45,8 @@ val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False)
 class_names = train_ds.classes
 print("Classes:", class_names)  # ['NORMAL', 'PNEUMONIA']
 
-# =========================
+
 # クラス不均衡対策（重み付き損失）
-# =========================
 targets = [label for _, label in train_ds.samples]
 num_normal = targets.count(0)
 num_pneumonia = targets.count(1)
@@ -66,9 +62,8 @@ class_weights = torch.tensor(
 
 print("Class weights:", class_weights)
 
-# =========================
+
 # モデル定義（ResNet18）
-# =========================
 model = models.resnet18(pretrained=True)
 
 # グレースケール対応（入力1ch）
@@ -81,19 +76,15 @@ model.fc = nn.Linear(model.fc.in_features, 2)
 
 model = model.to(DEVICE)
 
-# =========================
 # 損失・最適化
-# =========================
 criterion = nn.CrossEntropyLoss(weight=class_weights)
 optimizer = optim.Adam(model.parameters(), lr=LR)
 
-# =========================
 # 学習ループ
-# =========================
 for epoch in range(EPOCHS):
     model.train()
     train_loss = 0.0
-    # ===== 学習 =====
+    # 学習
     for images, labels in tqdm(train_loader, desc=f"Epoch {epoch+1}/{EPOCHS}"):
         images = images.to(DEVICE)
         labels = labels.to(DEVICE)
@@ -108,7 +99,7 @@ for epoch in range(EPOCHS):
 
     train_loss /= len(train_loader)
 
-    # ===== 検証 =====
+    # 検証
     model.eval()
     val_probs = []
     val_labels = []
@@ -126,9 +117,8 @@ for epoch in range(EPOCHS):
 
     print(f"Epoch {epoch+1}: Train Loss={train_loss:.4f}, Val AUC={auc:.4f}")
 
-# =========================
+
 # ONNX 出力（Rust側と形式を合わせる必要あり）
-# =========================
 dummy_input = torch.randn(1, 1, 224, 224).to(DEVICE)
 
 onnx_path = os.path.join(MODEL_DIR, "model.onnx")
