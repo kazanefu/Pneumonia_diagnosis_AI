@@ -1,0 +1,1 @@
+AI for diagnosing pneumonia using X-ray images
